@@ -1,79 +1,80 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import requests
+from fastapi import FastAPI
+from openai import AzureOpenAI
 import json
+import uvicorn
 
 app = FastAPI()
 
-class Message(BaseModel):
-    role: str
-    content: str
+# Initialize AzureOpenAI client
+client = AzureOpenAI(
+    api_version="2024-02-01",
+    azure_endpoint="https://il-openai-poc1.openai.azure.com/",
+    api_key="321caa2fd2e4493897e027a9a1469bc0",
+)
 
-@app.post("/generate_response/")
-async def generate_response(message: Message):
-    url = "https://il-openai-poc1.openai.azure.com/openai/deployments/POC1/chat/completions?api-version=2024-02-15-preview&api-key=321caa2fd2e4493897e027a9a1469bc0"
+@app.get("/generate/image")
+async def generate_image():
+    # Generate image using DALL-E 3
+    result = client.images.generate(
+        model="Dalle3",  # the name of your DALL-E 3 deployment
+        prompt="An image displaying a variety of clothing items with a debit card and balloons.",
+        n=1
+    )
 
-    payload = {
-        "messages": [
-            {
-                "role": message.role,
-                "content": message.content
-            }
-        ],
-        "temperature": 0.7,
-        "top_p": 0.95,
-        "frequency_penalty": 0,
-        "presence_penalty": 0,
-        "max_tokens": 800,
-        "stop": None
-    }
-    
-    headers = {
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Error from OpenAI")
-
-    try:
-        content = response.json()['choices'][0]['message']['content']
-        return {"response": content}
-    except (KeyError, IndexError):
-        raise HTTPException(status_code=500, detail="Invalid response from OpenAI")
+    image_url = json.loads(result.model_dump_json())['data'][0]['url']
+    return {"image_url": image_url}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
 
 
-# import requests
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Note: DALL-E 3 requires version 1.0.0 of the openai-python library or later
+# import os
+# from openai import AzureOpenAI
 # import json
 
-# url = "https://il-openai-poc1.openai.azure.com/openai/deployments/POC1/chat/completions?api-version=2024-02-15-preview&api-key=321caa2fd2e4493897e027a9a1469bc0"
+# client = AzureOpenAI(
+#     api_version="2024-02-01",
+#     azure_endpoint="https://il-openai-poc1.openai.azure.com/",
+#     api_key="321caa2fd2e4493897e027a9a1469bc0",
+# )
 
-# payload = json.dumps({
-#   "messages": [
-#     {
-#       "role": "system",
-#       "content": "What is secret key of happiness?"
-#     }
-#   ],
-#   "temperature": 0.7,
-#   "top_p": 0.95,
-#   "frequency_penalty": 0,
-#   "presence_penalty": 0,
-#   "max_tokens": 800,
-#   "stop": None
-# })
-# headers = {
-#   'Content-Type': 'application/json'
-# }
+# result = client.images.generate(
+#     model="Dalle3", # the name of your DALL-E 3 deployment
+#     prompt="An image displaying a variety of clothing items with a debit card and balloons.",
+#     n=1
+# )
 
-# response = requests.request("POST", url, headers=headers, data=payload)
-
-# # Extract content from the choices
-# content = response.text['choices'][0]['message']['content']
-
-# print(response.text)
-
+# image_url = json.loads(result.model_dump_json())['data'][0]['url']
+# print (image_url)
